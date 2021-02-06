@@ -1,4 +1,3 @@
-
 #!/home/mengxuanma/anaconda3/bin/python
 
 # -*- coding: utf-8 -*-
@@ -168,7 +167,8 @@ class Ui_MainWindow(object):
         self.A6.clicked.connect(self.A6_clicked)
         self.A7.clicked.connect(self.A7_clicked)
         self.A8.clicked.connect(self.A8_clicked)
-        self.next_frame.clicked.connect(self.next_frame_clicked)
+        #self.next_frame.clicked.connect(self.next_frame_clicked)
+        self.next_frame.pressed.connect(self.next_frame_clicked)
         self.start_labeling.clicked.connect(self.start_labeling_clicked)
         self.previous_frame.clicked.connect(self.previous_frame_clicked)
 
