@@ -1,0 +1,312 @@
+
+#!/home/mengxuanma/anaconda3/bin/python
+
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'label_tool.ui'
+#
+# Created by: PyQt5 UI code generator 5.10
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QFileDialog
+import argparse
+import pandas as pd
+import time
+
+def label_translator(label_id):
+    '''
+    Translate the label id to label name
+    0-background, 1-walking, 2-reaching up, 3-reaching forward, 4-reaching below, 5-sitting, 6-manipulation, 7-sweeping 
+    '''
+    switcher = {0:"background", 1:"walking", 2:"reaching up", 3:"reaching forward", 4:"reaching below", 5:"sitting", 6:"manipulation", 7:"sweeping"}
+    return switcher.get(label_id, "nothing")
+
+
+class Ui_MainWindow(object):
+
+    def set_frame_folder(self):
+        self.frame_dir = QFileDialog.getExistingDirectory()
+        print(self.frame_dir)
+
+    def load_csv_file(self):
+        csv_file = QFileDialog.getOpenFileName(self.MainWindow, "Load CSV file", "/home","CSV files (*.csv)" )
+        csv_file = csv_file[0]
+        self.csv_file = csv_file
+        print(csv_file)
+        self.change_message_box_label(csv_file + " is selected! Loading CSV file")
+        self.label_data = pd.read_csv(csv_file)
+        print(self.label_data)
+        self._frame_cnt=self.label_data.index.size
+        if not self._frame_cnt>0:
+            self.change_message_box_label("csv file empty or load error")
+        self._frame_ite = 0
+
+
+
+    def modify_write_csv(self, csv_file_handler, column_string, modified_value, write_file,save_file_name):
+        """
+        csv_file_handler: pandas dataframe
+        column_string: frame name 
+        modified_value: label to be updated
+        write_file: indicator of writing the data to a csv file or not
+        """
+        csv_file_handler.loc[csv_file_handler.frame_name == column_string,'label'] = modified_value
+    
+        if write_file:
+            csv_file_handler.to_csv(save_file_name, index=False)
+
+    def setupUi(self, MainWindow):
+        self.MainWindow = MainWindow
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(922, 721)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.message_box = QtWidgets.QLabel(self.centralwidget)
+        self.message_box.setGeometry(QtCore.QRect(10, 10, 621, 31))
+        self.message_box.setObjectName("message_box")
+        self.A1 = QtWidgets.QPushButton(self.centralwidget)
+        self.A1.setGeometry(QtCore.QRect(50, 550, 113, 32))
+        self.A1.setObjectName("A1")
+        self.A2 = QtWidgets.QPushButton(self.centralwidget)
+        self.A2.setGeometry(QtCore.QRect(160, 550, 113, 32))
+        self.A2.setObjectName("A2")
+        self.A3 = QtWidgets.QPushButton(self.centralwidget)
+        self.A3.setGeometry(QtCore.QRect(270, 550, 113, 32))
+        self.A3.setObjectName("A3")
+        self.A4 = QtWidgets.QPushButton(self.centralwidget)
+        self.A4.setGeometry(QtCore.QRect(380, 550, 113, 32))
+        self.A4.setObjectName("A4")
+        self.A5 = QtWidgets.QPushButton(self.centralwidget)
+        self.A5.setGeometry(QtCore.QRect(50, 600, 113, 32))
+        self.A5.setObjectName("A5")
+        self.A6 = QtWidgets.QPushButton(self.centralwidget)
+        self.A6.setGeometry(QtCore.QRect(160, 600, 113, 32))
+        self.A6.setObjectName("A6")
+        self.A7 = QtWidgets.QPushButton(self.centralwidget)
+        self.A7.setGeometry(QtCore.QRect(270, 600, 113, 32))
+        self.A7.setObjectName("A7")
+        self.A8 = QtWidgets.QPushButton(self.centralwidget)
+        self.A8.setGeometry(QtCore.QRect(380, 600, 113, 32))
+        self.A8.setObjectName("A8")
+ 
+        #self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
+        self.image_label = QtWidgets.QLabel(self.centralwidget)
+        self.image_label.setGeometry(QtCore.QRect(5, 41, 761, 501))
+        self.image_label.setObjectName("image_label")
+
+        self.display_label = QtWidgets.QLabel(self.centralwidget)
+        self.display_label.setGeometry(QtCore.QRect(790, 90, 121, 31))
+        self.display_label.setObjectName("display_label")
+        self.current_label = QtWidgets.QLabel(self.centralwidget)
+        self.current_label.setGeometry(QtCore.QRect(790, 140, 111, 31))
+        self.current_label.setObjectName("current_label")
+        self.previous_frame = QtWidgets.QPushButton(self.centralwidget)
+        self.previous_frame.setGeometry(QtCore.QRect(800, 270, 113, 32))
+        self.previous_frame.setObjectName("previous_frame")
+        self.next_frame = QtWidgets.QPushButton(self.centralwidget)
+        self.next_frame.setGeometry(QtCore.QRect(800, 320, 113, 32))
+        self.next_frame.setObjectName("next_frame")
+
+        self.start_labeling = QtWidgets.QPushButton(self.centralwidget)
+        self.start_labeling.setGeometry(QtCore.QRect(800, 220, 113, 32))
+        self.start_labeling.setObjectName("start_labeling")
+        
+
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
+        self.menuBar = QtWidgets.QMenuBar(MainWindow)
+        self.menuBar.setGeometry(QtCore.QRect(0, 0, 922, 22))
+        self.menuBar.setObjectName("menuBar")
+        self.menuFile = QtWidgets.QMenu(self.menuBar)
+        self.menuFile.setObjectName("menuFile")
+        MainWindow.setMenuBar(self.menuBar)
+        self.actionLoad_Frame_Folder = QtWidgets.QAction(MainWindow)
+        self.actionLoad_Frame_Folder.setObjectName("actionLoad_Frame_Folder")
+        self.actionLoad_Frame_Folder.triggered.connect(self.set_frame_folder)
+
+        self.actionLoad_Label_csv_file = QtWidgets.QAction(MainWindow)
+        self.actionLoad_Label_csv_file.setObjectName("actionLoad_Label_csv_file")
+        self.actionLoad_Label_csv_file.triggered.connect(self.load_csv_file)
+
+        self.menuFile.addAction(self.actionLoad_Frame_Folder)
+        self.menuFile.addAction(self.actionLoad_Label_csv_file)
+        self.menuBar.addAction(self.menuFile.menuAction())
+
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.message_box.setText(_translate("MainWindow", "Welcome to Quick Label !"))
+        self.A1.setText(_translate("MainWindow", "background"))
+        self.A2.setText(_translate("MainWindow", "walk"))
+        self.A3.setText(_translate("MainWindow", "reach up"))
+        self.A4.setText(_translate("MainWindow", "reach forward"))
+        self.A5.setText(_translate("MainWindow", "reach below"))
+        self.A6.setText(_translate("MainWindow", "sit"))
+        self.A7.setText(_translate("MainWindow", "manipulation"))
+        self.A8.setText(_translate("MainWindow", "sweep"))
+        self.display_label.setText(_translate("MainWindow", "Current Label is:"))
+        self.current_label.setText(_translate("MainWindow", "N/A"))
+        self.previous_frame.setText(_translate("MainWindow", "Previous"))
+        self.next_frame.setText(_translate("MainWindow", "Next"))
+        self.start_labeling.setText(_translate("MainWindow","Start"))
+        self.menuFile.setTitle(_translate("MainWindow", "File"))
+        self.actionLoad_Frame_Folder.setText(_translate("MainWindow", "Load Frame Folder"))
+        self.actionLoad_Label_csv_file.setText(_translate("MainWindow", "Load Label CSV File"))
+
+        self.A1.clicked.connect(self.A1_clicked)
+        self.A2.clicked.connect(self.A2_clicked)
+        self.A3.clicked.connect(self.A3_clicked)
+        self.A4.clicked.connect(self.A4_clicked)
+        self.A5.clicked.connect(self.A5_clicked)
+        self.A6.clicked.connect(self.A6_clicked)
+        self.A7.clicked.connect(self.A7_clicked)
+        self.A8.clicked.connect(self.A8_clicked)
+        self.next_frame.clicked.connect(self.next_frame_clicked)
+        self.start_labeling.clicked.connect(self.start_labeling_clicked)
+        self.previous_frame.clicked.connect(self.previous_frame_clicked)
+
+    def A1_clicked(self):
+        print("action1 clicked")
+        self.change_message_box_label("labeling pic as background")
+        self.modify_write_csv(self.label_data, self.frame_name,"0",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def A2_clicked(self):
+        print("action2 clicked")
+        self.change_message_box_label("labeling pic as walking")
+        self.modify_write_csv(self.label_data, self.frame_name,"1",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def A3_clicked(self):
+        print("action3 clicked")
+        self.change_message_box_label("labeling pic as reaching up")
+        self.modify_write_csv(self.label_data, self.frame_name,"2",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def A4_clicked(self):
+        print("action4 clicked")
+        self.change_message_box_label("labeling pic as reaching forward")
+        self.modify_write_csv(self.label_data, self.frame_name,"3",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def A5_clicked(self):
+        print("action5 clicked")
+        self.change_message_box_label("labeling pic as reaching below")
+        self.modify_write_csv(self.label_data, self.frame_name,"4",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def A6_clicked(self):
+        print("action6 clicked")
+        self.change_message_box_label("labeling pic as sitting")
+        self.modify_write_csv(self.label_data, self.frame_name,"5",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def A7_clicked(self):
+        print("action7 clicked")
+        self.change_message_box_label("labeling pic as manipulation")
+        self.modify_write_csv(self.label_data, self.frame_name,"6",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def A8_clicked(self):
+        print("action8 clicked")
+        self.change_message_box_label("labeling pic as sweeping")
+        self.modify_write_csv(self.label_data, self.frame_name,"7",1,self.csv_file)
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_label)
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def change_message_box_label(self, string_label):
+        self.message_box.setText(string_label)
+        self.message_box.adjustSize()
+
+    def start_labeling_clicked(self):
+        if not self._frame_cnt>0:
+            self.change_message_box_label("csv file empty or load error")
+            return 1
+        self._frame_ite = 0
+        frame_name=self.label_data['frame_name'][self._frame_ite]
+        self.frame_name = frame_name
+        frame_label=self.label_data['label'][self._frame_ite]
+        print(frame_name)
+        print(frame_label)
+        frame_path=self.frame_dir + '/' + frame_name
+        print(frame_path)
+        self.show_image(image_path = frame_path)
+        self.change_message_box_label(frame_name+" is loaded.")
+        #self.current_label.setText(str(frame_label))
+        self.current_label.setText(label_translator(int(frame_label)))
+
+    def previous_frame_clicked(self):
+        print("previous_frame clicked")
+
+        self._frame_ite -= 1
+        if self._frame_ite == -1:
+            self._frame_ite = self._frame_cnt - 1 
+
+        frame_name=self.label_data['frame_name'][self._frame_ite]
+        self.frame_name = frame_name
+        frame_label=self.label_data['label'][self._frame_ite]
+        #self.current_label.setText(str(frame_label))
+        self.current_label.setText(label_translator(int(frame_label)))
+        print(frame_name)
+        print(frame_label)
+        frame_path=self.frame_dir + '/' + frame_name
+        print(frame_path)
+        self.show_image(image_path = frame_path)
+        self.change_message_box_label(frame_name+" is loaded.")
+
+    def next_frame_clicked(self):
+        print("next_frame clicked")
+
+        self._frame_ite += 1
+        if self._frame_ite == self._frame_cnt:
+            self._frame_ite = 0
+
+        frame_name=self.label_data['frame_name'][self._frame_ite]
+        self.frame_name = frame_name
+        frame_label=self.label_data['label'][self._frame_ite]
+        #self.current_label.setText(str(frame_label))
+        self.current_label.setText(label_translator(int(frame_label)))
+        print(frame_name)
+        print(frame_label)
+        frame_path=self.frame_dir + '/' + frame_name
+        print(frame_path)
+        self.show_image(image_path = frame_path)
+        self.change_message_box_label(frame_name+" is loaded.")
+
+    def show_image(self,image_path):
+        image_profile = QtGui.QImage(image_path) #QImage object
+        image_profile = image_profile.scaled(761,501, aspectRatioMode=QtCore.Qt.KeepAspectRatio, transformMode=QtCore.Qt.SmoothTransformation) # To scale image for example and keep its Aspect Ration    
+        self.image_label.setPixmap(QtGui.QPixmap.fromImage(image_profile))
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())
+
