@@ -10,6 +10,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import QTimer
 import argparse
 import pandas as pd
 import time
@@ -20,7 +21,7 @@ def label_translator(label_id):
     0-background, 1-walking, 2-reaching up, 3-reaching forward, 4-reaching below, 5-sitting, 6-manipulation, 7-sweeping 
     '''
     switcher = {0:"background", 1:"walking", 2:"reaching up", 3:"reaching forward", 4:"reaching below", 5:"sitting", 6:"manipulation", 7:"sweeping"}
-    return switcher.get(label_id, "nothing")
+    return switcher.get(label_id, "nothing/please specify one before update batch")
 
 
 class Ui_MainWindow(object):
@@ -44,14 +45,14 @@ class Ui_MainWindow(object):
 
 
 
-    def modify_write_csv(self, csv_file_handler, column_string, modified_value, write_file,save_file_name):
+    def modify_write_csv(self, csv_file_handler, frame_name, modified_value, write_file,save_file_name):
         """
         csv_file_handler: pandas dataframe
-        column_string: frame name 
+        frame_name: frame name 
         modified_value: label to be updated
         write_file: indicator of writing the data to a csv file or not
         """
-        csv_file_handler.loc[csv_file_handler.frame_name == column_string,'label'] = modified_value
+        csv_file_handler.loc[csv_file_handler.frame_name == frame_name,'label'] = modified_value
     
         if write_file:
             csv_file_handler.to_csv(save_file_name, index=False)
@@ -65,6 +66,9 @@ class Ui_MainWindow(object):
         self.message_box = QtWidgets.QLabel(self.centralwidget)
         self.message_box.setGeometry(QtCore.QRect(10, 10, 621, 31))
         self.message_box.setObjectName("message_box")
+        
+        self.translate = QtCore.QCoreApplication.translate
+
         self.A1 = QtWidgets.QPushButton(self.centralwidget)
         self.A1.setGeometry(QtCore.QRect(50, 550, 113, 32))
         self.A1.setObjectName("A1")
@@ -77,19 +81,61 @@ class Ui_MainWindow(object):
         self.A4 = QtWidgets.QPushButton(self.centralwidget)
         self.A4.setGeometry(QtCore.QRect(380, 550, 113, 32))
         self.A4.setObjectName("A4")
+
         self.A5 = QtWidgets.QPushButton(self.centralwidget)
-        self.A5.setGeometry(QtCore.QRect(50, 600, 113, 32))
+        self.A5.setGeometry(QtCore.QRect(50, 582, 113, 32))
         self.A5.setObjectName("A5")
         self.A6 = QtWidgets.QPushButton(self.centralwidget)
-        self.A6.setGeometry(QtCore.QRect(160, 600, 113, 32))
+        self.A6.setGeometry(QtCore.QRect(160, 582, 113, 32))
         self.A6.setObjectName("A6")
         self.A7 = QtWidgets.QPushButton(self.centralwidget)
-        self.A7.setGeometry(QtCore.QRect(270, 600, 113, 32))
+        self.A7.setGeometry(QtCore.QRect(270, 582, 113, 32))
         self.A7.setObjectName("A7")
         self.A8 = QtWidgets.QPushButton(self.centralwidget)
-        self.A8.setGeometry(QtCore.QRect(380, 600, 113, 32))
+        self.A8.setGeometry(QtCore.QRect(380, 582, 113, 32))
         self.A8.setObjectName("A8")
- 
+
+        self.batch_A1 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A1.setGeometry(QtCore.QRect(50, 630, 113, 32))
+        self.batch_A1.setObjectName("bA1")
+        self.batch_A2 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A2.setGeometry(QtCore.QRect(160, 630, 113, 32))
+        self.batch_A2.setObjectName("bA2")
+        self.batch_A3 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A3.setGeometry(QtCore.QRect(270, 630, 113, 32))
+        self.batch_A3.setObjectName("bA3")
+        self.batch_A4 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A4.setGeometry(QtCore.QRect(380, 630, 113, 32))
+        self.batch_A4.setObjectName("bA4")
+
+        self.batch_A5 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A5.setGeometry(QtCore.QRect(50, 662, 113, 32))
+        self.batch_A5.setObjectName("A5")
+        self.batch_A6 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A6.setGeometry(QtCore.QRect(160, 662, 113, 32))
+        self.batch_A6.setObjectName("A6")
+        self.batch_A7 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A7.setGeometry(QtCore.QRect(270, 662, 113, 32))
+        self.batch_A7.setObjectName("A7")
+        self.batch_A8 = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_A8.setGeometry(QtCore.QRect(380, 662, 113, 32))
+        self.batch_A8.setObjectName("A8")
+
+        #batch update variables
+        self.batch_start_file="N/A"
+        self.batch_end_file="N/A"
+        self.batch_start_idx=-1
+        self.batch_end_idx=-1
+        self.current_batch_label=-1
+
+
+        #timer for continues navigation
+        self.inteval = 75
+        self.next_frame_timer=QTimer()
+        self.next_frame_timer.timeout.connect(self.show_next_frame)
+
+        self.prev_frame_timer=QTimer()
+        self.prev_frame_timer.timeout.connect(self.show_prev_frame)
         #self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
         self.image_label = QtWidgets.QLabel(self.centralwidget)
         self.image_label.setGeometry(QtCore.QRect(5, 41, 761, 501))
@@ -98,9 +144,35 @@ class Ui_MainWindow(object):
         self.display_label = QtWidgets.QLabel(self.centralwidget)
         self.display_label.setGeometry(QtCore.QRect(790, 90, 121, 31))
         self.display_label.setObjectName("display_label")
+
         self.current_label = QtWidgets.QLabel(self.centralwidget)
         self.current_label.setGeometry(QtCore.QRect(790, 140, 111, 31))
         self.current_label.setObjectName("current_label")
+
+        self.display_label2 = QtWidgets.QLabel(self.centralwidget)
+        self.display_label2.setGeometry(QtCore.QRect(790, 520, 121, 31))
+        self.display_label2.setObjectName("display_label2")
+
+        self.batch_start_label = QtWidgets.QLabel(self.centralwidget)
+        self.batch_start_label.setGeometry(QtCore.QRect(590, 550, 621, 31))
+        self.batch_start_label.setObjectName("batch_start_label")
+
+        self.display_label3 = QtWidgets.QLabel(self.centralwidget)
+        self.display_label3.setGeometry(QtCore.QRect(790, 580, 121, 31))
+        self.display_label3.setObjectName("display_label3")
+
+        self.batch_end_label = QtWidgets.QLabel(self.centralwidget)
+        self.batch_end_label.setGeometry(QtCore.QRect(590, 610, 621, 31))
+        self.batch_end_label.setObjectName("batch_end_label")
+
+        self.display_label4 = QtWidgets.QLabel(self.centralwidget)
+        self.display_label4.setGeometry(QtCore.QRect(790, 640, 121, 31))
+        self.display_label4.setObjectName("display_label4")
+
+        self.batch_label = QtWidgets.QLabel(self.centralwidget)
+        self.batch_label.setGeometry(QtCore.QRect(590, 670, 621, 31))
+        self.batch_label.setObjectName("batch_label")
+
         self.previous_frame = QtWidgets.QPushButton(self.centralwidget)
         self.previous_frame.setGeometry(QtCore.QRect(800, 270, 113, 32))
         self.previous_frame.setObjectName("previous_frame")
@@ -111,6 +183,18 @@ class Ui_MainWindow(object):
         self.start_labeling = QtWidgets.QPushButton(self.centralwidget)
         self.start_labeling.setGeometry(QtCore.QRect(800, 220, 113, 32))
         self.start_labeling.setObjectName("start_labeling")
+
+        self.mark_start = QtWidgets.QPushButton(self.centralwidget)
+        self.mark_start.setGeometry(QtCore.QRect(800, 380, 113, 32))
+        self.mark_start.setObjectName("mark_start")
+
+        self.mark_end = QtWidgets.QPushButton(self.centralwidget)
+        self.mark_end.setGeometry(QtCore.QRect(800, 430, 113, 32))
+        self.mark_end.setObjectName("mark_end")
+
+        self.batch_update = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_update.setGeometry(QtCore.QRect(800, 480, 113, 32))
+        self.batch_update.setObjectName("batch_end")
         
 
         MainWindow.setCentralWidget(self.centralwidget)
@@ -150,11 +234,39 @@ class Ui_MainWindow(object):
         self.A6.setText(_translate("MainWindow", "sit"))
         self.A7.setText(_translate("MainWindow", "manipulation"))
         self.A8.setText(_translate("MainWindow", "sweep"))
+
+        self.batch_A1.setText(_translate("MainWindow", "B:background"))
+        self.batch_A2.setText(_translate("MainWindow", "B:walk"))
+        self.batch_A3.setText(_translate("MainWindow", "B:reach up"))
+        self.batch_A4.setText(_translate("MainWindow", "B:reach forward"))
+        self.batch_A5.setText(_translate("MainWindow", "B:reach below"))
+        self.batch_A6.setText(_translate("MainWindow", "B:sit"))
+        self.batch_A7.setText(_translate("MainWindow", "B:manipulation"))
+        self.batch_A8.setText(_translate("MainWindow", "B:sweep"))
         self.display_label.setText(_translate("MainWindow", "Current Label is:"))
         self.current_label.setText(_translate("MainWindow", "N/A"))
+
+        self.display_label2.setText(_translate("MainWindow", "Current Batch Start is:"))
+        self.batch_start_label.setText(_translate("MainWindow", self.batch_end_file))
+
+        self.display_label3.setText(_translate("MainWindow", "Current Batch End is:"))
+        self.batch_end_label.setText(_translate("MainWindow", self.batch_end_file))
+
+        self.display_label4.setText(_translate("MainWindow", "Current Batch Label is:"))
+        self.batch_label.setText(_translate("MainWindow", label_translator(self.current_batch_label)))
+
         self.previous_frame.setText(_translate("MainWindow", "Previous"))
         self.next_frame.setText(_translate("MainWindow", "Next"))
         self.start_labeling.setText(_translate("MainWindow","Start"))
+        self.mark_start.setText(_translate("MainWindow","Mark B Start"))
+        self.mark_end.setText(_translate("MainWindow","Mark B End"))
+        self.mark_start.clicked.connect(self.batch_start_clicked)
+        self.mark_end.clicked.connect(self.batch_end_clicked)
+        self.batch_update.setText(_translate("MainWindow","Update Batch"))
+        self.batch_update.clicked.connect(self.update_batch)
+
+
+
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.actionLoad_Frame_Folder.setText(_translate("MainWindow", "Load Frame Folder"))
         self.actionLoad_Label_csv_file.setText(_translate("MainWindow", "Load Label CSV File"))
@@ -167,74 +279,112 @@ class Ui_MainWindow(object):
         self.A6.clicked.connect(self.A6_clicked)
         self.A7.clicked.connect(self.A7_clicked)
         self.A8.clicked.connect(self.A8_clicked)
-        #self.next_frame.clicked.connect(self.next_frame_clicked)
-        self.next_frame.pressed.connect(self.next_frame_clicked)
+
+        self.batch_A1.clicked.connect(self.batch_A1_clicked)
+        self.batch_A2.clicked.connect(self.batch_A2_clicked)
+        self.batch_A3.clicked.connect(self.batch_A3_clicked)
+        self.batch_A4.clicked.connect(self.batch_A4_clicked)
+        self.batch_A5.clicked.connect(self.batch_A5_clicked)
+        self.batch_A6.clicked.connect(self.batch_A6_clicked)
+        self.batch_A7.clicked.connect(self.batch_A7_clicked)
+        self.batch_A8.clicked.connect(self.batch_A8_clicked)
+
         self.start_labeling.clicked.connect(self.start_labeling_clicked)
-        self.previous_frame.clicked.connect(self.previous_frame_clicked)
+
+        self.next_frame.pressed.connect(self.next_frame_timer_starter)
+        self.next_frame.released.connect(self.next_frame_timer_stopper)
+        self.previous_frame.pressed.connect(self.prev_frame_timer_starter)
+        self.previous_frame.released.connect(self.prev_frame_timer_stopper)
 
     def A1_clicked(self):
         print("action1 clicked")
         self.change_message_box_label("labeling pic as background")
         self.modify_write_csv(self.label_data, self.frame_name,"0",1,self.csv_file)
-        frame_label=self.label_data['label'][self._frame_ite]
-        print(frame_label)
-        self.current_label.setText(label_translator(int(frame_label)))
+        self.show_new_label()
 
     def A2_clicked(self):
         print("action2 clicked")
         self.change_message_box_label("labeling pic as walking")
         self.modify_write_csv(self.label_data, self.frame_name,"1",1,self.csv_file)
-        frame_label=self.label_data['label'][self._frame_ite]
-        print(frame_label)
-        self.current_label.setText(label_translator(int(frame_label)))
+        self.show_new_label()
 
     def A3_clicked(self):
         print("action3 clicked")
         self.change_message_box_label("labeling pic as reaching up")
         self.modify_write_csv(self.label_data, self.frame_name,"2",1,self.csv_file)
-        frame_label=self.label_data['label'][self._frame_ite]
-        print(frame_label)
-        self.current_label.setText(label_translator(int(frame_label)))
+        self.show_new_label()
 
     def A4_clicked(self):
         print("action4 clicked")
         self.change_message_box_label("labeling pic as reaching forward")
         self.modify_write_csv(self.label_data, self.frame_name,"3",1,self.csv_file)
-        frame_label=self.label_data['label'][self._frame_ite]
-        print(frame_label)
-        self.current_label.setText(label_translator(int(frame_label)))
+        self.show_new_label()
 
     def A5_clicked(self):
         print("action5 clicked")
         self.change_message_box_label("labeling pic as reaching below")
         self.modify_write_csv(self.label_data, self.frame_name,"4",1,self.csv_file)
-        frame_label=self.label_data['label'][self._frame_ite]
-        print(frame_label)
-        self.current_label.setText(label_translator(int(frame_label)))
+        self.show_new_label()
 
     def A6_clicked(self):
         print("action6 clicked")
         self.change_message_box_label("labeling pic as sitting")
         self.modify_write_csv(self.label_data, self.frame_name,"5",1,self.csv_file)
-        frame_label=self.label_data['label'][self._frame_ite]
-        print(frame_label)
-        self.current_label.setText(label_translator(int(frame_label)))
+        self.show_new_label()
 
     def A7_clicked(self):
         print("action7 clicked")
         self.change_message_box_label("labeling pic as manipulation")
         self.modify_write_csv(self.label_data, self.frame_name,"6",1,self.csv_file)
-        frame_label=self.label_data['label'][self._frame_ite]
-        print(frame_label)
-        self.current_label.setText(label_translator(int(frame_label)))
+        self.show_new_label()
 
     def A8_clicked(self):
         print("action8 clicked")
         self.change_message_box_label("labeling pic as sweeping")
         self.modify_write_csv(self.label_data, self.frame_name,"7",1,self.csv_file)
+        self.show_new_label()
+
+
+    def batch_A1_clicked(self):
+        self.current_batch_label=0
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+    def batch_A2_clicked(self):
+        self.current_batch_label=1
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+    def batch_A3_clicked(self):
+        self.current_batch_label=2
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+    def batch_A4_clicked(self):
+        self.current_batch_label=3
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+    def batch_A5_clicked(self):
+        self.current_batch_label=4
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+    def batch_A6_clicked(self):
+        self.current_batch_label=5
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+    def batch_A7_clicked(self):
+        self.current_batch_label=6
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+    def batch_A8_clicked(self):
+        self.current_batch_label=7
+        self.batch_label.setText(self.translate("MainWindow", label_translator(self.current_batch_label)))
+
+
+
+
+    def show_new_label(self):
         frame_label=self.label_data['label'][self._frame_ite]
         print(frame_label)
         self.current_label.setText(label_translator(int(frame_label)))
+
 
     def change_message_box_label(self, string_label):
         self.message_box.setText(string_label)
@@ -253,13 +403,48 @@ class Ui_MainWindow(object):
         frame_path=self.frame_dir + '/' + frame_name
         print(frame_path)
         self.show_image(image_path = frame_path)
-        self.change_message_box_label(frame_name+" is loaded.")
+        self.current_label.setText(label_translator(int(frame_label)))
+        self.change_message_box_label(frame_name+" loaded."+" It's the "+str(self._frame_ite)+"th pics in the folder.")
+
+    def prev_frame_timer_starter(self):
+        print("previous_frame clicked")
+        self.prev_frame_timer.start(self.inteval)
+
+    def prev_frame_timer_stopper(self):
+        print("next_frame released")
+        self.prev_frame_timer.stop()
+
+    def batch_start_clicked(self):
+        self.batch_start_idx = self._frame_ite;
+        frame_name=self.label_data['frame_name'][self.batch_start_idx]
+        self.batch_start_label.setText(self.translate("MainWindow", frame_name))
+
+
+    def batch_end_clicked(self):
+        self.batch_end_idx = self._frame_ite;
+        frame_name=self.label_data['frame_name'][self.batch_end_idx]
+        self.batch_end_label.setText(self.translate("MainWindow", frame_name))
+
+    def update_batch(self):
+        sidx=self.batch_start_idx
+        eidx=self.batch_end_idx
+        blabel=self.current_batch_label
+        for idx in range(sidx,eidx):
+            frame_name=self.label_data['frame_name'][idx]
+            self.modify_write_csv(self.label_data, frame_name,str(self.current_batch_label),0,self.csv_file)
+        #update last one with writing to csv file    
+        frame_name=self.label_data['frame_name'][eidx]
+        self.modify_write_csv(self.label_data, frame_name,str(self.current_batch_label),1,self.csv_file)
+        self.change_message_box_label("batch is updated.")
+
+        #current frame may be in the batch, so its label may be updated, thus we need to refresh the textbox
+        #frame_name=self.label_data['frame_name'][self._frame_ite]
+        #self.frame_name = frame_name
+        frame_label=self.label_data['label'][self._frame_ite]
         #self.current_label.setText(str(frame_label))
         self.current_label.setText(label_translator(int(frame_label)))
 
-    def previous_frame_clicked(self):
-        print("previous_frame clicked")
-
+    def show_prev_frame(self):
         self._frame_ite -= 1
         if self._frame_ite == -1:
             self._frame_ite = self._frame_cnt - 1 
@@ -274,11 +459,18 @@ class Ui_MainWindow(object):
         frame_path=self.frame_dir + '/' + frame_name
         print(frame_path)
         self.show_image(image_path = frame_path)
-        self.change_message_box_label(frame_name+" is loaded.")
+        self.change_message_box_label(frame_name+" loaded."+" It's the "+str(self._frame_ite)+"th pics in the folder.")
 
-    def next_frame_clicked(self):
-        print("next_frame clicked")
+    def next_frame_timer_starter(self):
+        print("next_frame pressed")
+        #self.show_next_frame()
+        self.next_frame_timer.start(self.inteval)
 
+    def next_frame_timer_stopper(self):
+        print("next_frame released")
+        self.next_frame_timer.stop()
+
+    def show_next_frame(self):
         self._frame_ite += 1
         if self._frame_ite == self._frame_cnt:
             self._frame_ite = 0
@@ -293,7 +485,7 @@ class Ui_MainWindow(object):
         frame_path=self.frame_dir + '/' + frame_name
         print(frame_path)
         self.show_image(image_path = frame_path)
-        self.change_message_box_label(frame_name+" is loaded.")
+        self.change_message_box_label(frame_name+" loaded."+" It's the "+str(self._frame_ite)+"th pics in the folder.")
 
     def show_image(self,image_path):
         image_profile = QtGui.QImage(image_path) #QImage object
